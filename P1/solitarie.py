@@ -187,17 +187,58 @@ def game_finished(board):
 # This might be too complex
 def center_of_mass(board):
 
-    x = 0           # Column coordinates of the CoM
-    y = 0           # Row coordinates of the CoM
+    c = 0           # Column coordinates of the CoM
+    l = 0           # Row coordinates of the CoM
     n = 0           # Number of pieces
     
     for i in range(board_lines(board)):
         for j in range(board_cols(board)):
             if is_peg(pos_content(board,make_pos(i,j))):
-                x += j
-                y += i
+                c += j
+                l += i
                 n += 1
-    return (x/n, y/n)
+    return make_pos(l/n, c/n)
+
+
+# Calcules the distance of the new position of the move and the 
+# Center of mass of a board (pos)
+def com_distance(final_pos, com_pos):
+
+    # Line and column of the final position of the move
+    l_final =   pos_l(final_pos)
+    c_final =   pos_c(final_pos)
+
+    # Line and column coordinates of the center of mass
+    l_com =   pos_l(com_pos)
+    c_com =   pos_c(com_pos)
+    
+    d_power = (l_final - l_com)**2 + (c_final - c_com)**2
+
+    return d_power
+
+# h0 prefers nodes resulting from moves on the direction of the Center of mass 
+# of the parent Node (where most balls are . This tryies to avoid making moves 
+# that place pieces away of the rest, which makes the searching algorithm to reach 
+# unsuccessful states
+def h0(node):
+
+    if node.parent is None:
+        return 0
+    parent_board = node.parent.state.board
+    # Coordinates of the center of mass of the parent board
+    parent_com = center_of_mass(parent_board) 
+    # Node action that produced its state
+    move = node.action
+
+    # Final position of the move
+    l_final =   pos_l(move_final(move))
+    c_final =   pos_c(move_final(move))
+
+    final = make_pos(l_final, c_final)
+
+    distance = com_distance(final, parent_com)
+
+    return distance
 
 class solitarie(Problem):
     
@@ -207,6 +248,7 @@ class solitarie(Problem):
 
     def __init__(self, board):
         Problem.__init__(self, board)
+        self.
 
     # Returns all the possible actions from the given state
     def actions(self, state):
@@ -246,13 +288,11 @@ class sol_state:
                 b = b + str(get_board_line(self.board,f))
         return b
 
-def solving_times(board):
+def solving_times(board, f=None):
 
 
     # Defining the initial state with the original board
     initial = sol_state(board)
-
-    print(initial)
 
     print(center_of_mass(board))
 
@@ -265,18 +305,19 @@ def solving_times(board):
     gan_time = None
 
     dfs_prev_time = time.time()
-    result_dfs = depth_first_tree_search(problem)
+    #result_dfs = depth_first_tree_search(problem)
     dfs_time = time.time() - dfs_prev_time
 
-    print(result_dfs)
+    #print(result_dfs)
 
-    # First the nodes with the less depth (breath first search)
-    f = lambda node: node.depth             
+    if f is None:
+        # First the nodes with the less depth (breath first search)
+        f = lambda node: node.depth             
 
     result_gan = best_first_graph_search(problem, f)
     gan_time = time.time() - dfs_time
 
-    print(result_gan)
+    #print(result_gan)
     """
     result_astar = astar_search(problem, h)
     astar_time = time.time() - gan_time
@@ -292,9 +333,16 @@ if __name__ == "__main__":
     X = c_blocked()
     _ = c_empty()
 
+
+    bx =   [[O,_,_,O,O],
+            [O,_,_,O,O],
+            [_,_,_,_,_],
+            [O,O,O,_,_],
+            [O,_,_,_,_]]
+
     b0 =   [[_,_,O],
-            [O,O,O],
-            [O,O,O]]
+            [_,_,O],
+            [_,O,O]]
 
     b1 =   [[_,O,O,O,_],
             [O,_,O,_,O],
@@ -317,6 +365,25 @@ if __name__ == "__main__":
             [O,O,O,O,O,O],
             [O,O,O,O,O,O]]
 
-    times = solving_times(b1)
+    board = bx
+
+    board_dimensions = board_dim(board)
+
+    board_center = center_of_mass(board) 
+    """
+    final_pos1 = make_pos(0,0)
+    final_pos2 = make_pos(1,2)
+
+    d1 = com_distance(final_pos1, board_center)
+    d2 = com_distance(final_pos2, board_center)
+
+    print(center_of_mass(board))
+    print(d1)
+    print(d2)
+    """
+    f = h0
+    print(solving_times(board, f))
+
+    #times = solving_times(b0)
     
-    print(times)
+    #print(times)
