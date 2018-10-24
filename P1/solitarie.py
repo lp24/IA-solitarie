@@ -7,7 +7,7 @@ _______________________________________________________________________________
 
 """
 
-from search import Problem, Node, depth_first_tree_search
+from search import Problem, Node, depth_first_tree_search, best_first_graph_search
 import time
 
 def c_peg():
@@ -232,6 +232,9 @@ class sol_state:
     def __init__(self, board):
         self.board = board
 
+    def __lt__(self, node):
+        return True         # Always the first node is smaller
+
     def __repr__(self):
 
         b = "\n"
@@ -267,11 +270,15 @@ def solving_times(board):
 
     print(result_dfs)
 
-    """
+    # First the nodes with the less depth (breath first search)
+    f = lambda node: node.depth             
+
     result_gan = best_first_graph_search(problem, f)
     gan_time = time.time() - dfs_time
 
-    result_astar = astar_search(problem)
+    print(result_gan)
+    """
+    result_astar = astar_search(problem, h)
     astar_time = time.time() - gan_time
     """
 
@@ -310,6 +317,6 @@ if __name__ == "__main__":
             [O,O,O,O,O,O],
             [O,O,O,O,O,O]]
 
-    b2_times = solving_times(b2)
+    b2_times = solving_times(b1)
     
     print(b2_times)
