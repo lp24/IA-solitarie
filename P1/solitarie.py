@@ -1,4 +1,14 @@
-from search import Problem, Node
+"""
+_______________________________________________________________________________
+IA project 1
+Luis Oliveira
+Samuel Arleo 94284
+_______________________________________________________________________________
+
+"""
+
+from search import Problem, Node, depth_first_tree_search
+import time
 
 def c_peg():
     return "O"
@@ -69,6 +79,9 @@ def board_lines(board):
 
 def board_cols(board):
     return board_dim(board)[1]
+
+def get_board_line(board, line):
+    return board[line]
 
 def pos_content(board,position):
     return board[pos_l(position)][pos_c(position)]
@@ -164,6 +177,28 @@ def board_pieces(board):
                 pieces_number = pieces_number + 1
     return pieces_number                                                                   
 
+# Checks if the game is finished (1 piece left)
+def game_finished(board):
+    return board_pieces(board) == 1
+
+# Coordinates where the most amount of pieces is located (could be float). This 
+# could be used as an heuristic to try to head the moves towards the sections with 
+# more pieces. Give more priority to those who are far from the center of mass
+# This might be too complex
+def center_of_mass(board):
+
+    x = 0           # Column coordinates of the CoM
+    y = 0           # Row coordinates of the CoM
+    n = 0           # Number of pieces
+    
+    for i in range(board_lines(board)):
+        for j in range(board_cols(board)):
+            if is_peg(pos_content(board,make_pos(i,j))):
+                x += j
+                y += i
+                n += 1
+    return (x/n, y/n)
+
 class solitarie(Problem):
     
     """
@@ -171,51 +206,118 @@ class solitarie(Problem):
     """
 
     def __init__(self, board):
-        self.board = board
+        Problem.__init__(self, board)
 
+    # Returns all the possible actions from the given state
+    def actions(self, state):
+        return board_moves(state.board)
 
+    # Returns the new state with the action performed to the board
+    def result(self, state, action):
+        new_board = board_perform_move(state.board, action)
+        return sol_state(new_board)
 
-class sol_state(Node):
+    # Stop condition for the search alg. when there is one piece left on the board
+    def goal_test(self, state):
+        #return state.pieces == 1 
+        return game_finished(state.board)
+
+class sol_state:
 
     """
-    Class that represent a state in the graph. In the solitarie game, it stores 
-    the current board produced after all the actions performed before in the 
-    parent nodes
+    A state in the search tree. It stores the current board produced 
+    after all the actions performed before in the parent nodes
     """
 
     def __init__(self, board):
         self.board = board
+        #self.pieces = None              # Number of pieces at the current state
 
     def __lt__(self):
         return True
 
     def __repr__(self):
 
-        b = ""
-        rows = len(self.board)
-        for f in range(0,rows):
-            if f != rows - 1:
-                b = b + str(self.board[f]) + "\n"
+        b = "\n"
+        lines = board_lines(self.board)
+        for f in range(0, lines):
+            if f != lines - 1:
+                b = b + str(get_board_line(self.board,f)) + "\n"
             else:
-                b = b + str(self.board[f])
+                b = b + str(get_board_line(self.board,f))
         return b
 
+def solving_times(board):
 
-#if __name__ == "__main__":
 
-O = c_peg()
-X = c_blocked()
-_ = c_empty()
+    # Defining the initial state with the original board
+    initial = sol_state(board)
 
-b1 = [
-        [_,O,X],
-        [O,O,_],
-        [O,O,X]
-     ]
-"""
+    print(initial)
 
-b1 = [[_,O,X],[O,O,_],[_,O,X]]
+    print(center_of_mass(board))
 
-"""
-s = sol_state(b1)
-print(s)
+    # Creating a solitarie Problem instance
+    problem = solitarie(initial)
+
+    # Delete when all searches are defined
+    result_dfs = None
+    astar_time = None
+    gan_time = None
+
+    dfs_prev_time = time.time()
+    result_dfs = depth_first_tree_search(problem)
+    dfs_time = time.time() - dfs_prev_time
+
+    print(result_dfs)
+
+    """
+    result_gan = best_first_graph_search(problem, f)
+    gan_time = time.time() - dfs_time
+
+    result_astar = astar_search(problem)
+    astar_time = time.time() - gan_time
+    """
+
+    return {"dfs_time":dfs_time, "astar_time":astar_time, "gan_time":gan_time}
+
+
+
+if __name__ == "__main__":
+
+    O = c_peg()
+    X = c_blocked()
+    _ = c_empty()
+
+    b0 =   [[_,_,O],
+            [O,O,O],
+            [O,O,O]]
+
+    b1 =   [[_,O,O,O,_],
+            [O,_,O,_,O],
+            [_,O,_,O,_],
+            [O,_,O,_,_],
+            [_,O,_,_,_]]
+
+    b2 =   [[O,O,O,X],
+            [O,O,O,O],
+            [O,_,O,O],
+            [O,O,O,O]]
+
+    b3 =   [[O,O,O,X,X],
+            [O,O,O,O,O],
+            [O,_,O,_,O],
+            [O,O,O,O,O]]
+
+    b4 =   [[O,O,O,X,X,X],
+            [O,_,O,O,O,O],
+            [O,O,O,O,O,O],
+            [O,O,O,O,O,O]]
+
+    #b0_times = solving_times(b0)
+    #b1_times = solving_times(b1)
+    #b2_times = solving_times(b2)
+    b3_times = solving_times(b3)
+    #b4_times = solving_times(b4)
+
+    print(b3_times)
