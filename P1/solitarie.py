@@ -314,10 +314,6 @@ if __name__ == "__main__":
             [O,O,O,O,O,O],
             [O,O,O,O,O,O]]
 
-    #b0_times = solving_times(b0)
-    #b1_times = solving_times(b1)
-    #b2_times = solving_times(b2)
-    b3_times = solving_times(b3)
-    #b4_times = solving_times(b4)
-
-    print(b3_times)
+    b2_times = solving_times(b2)
+    
+    print(b2_times)
