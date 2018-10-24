@@ -198,7 +198,8 @@ class solitaire(Problem):
     Game problem class
     """
     def __init__(self, board):
-        self.initial=sol_state(board,board_pieces(board))
+        self.initial = sol_state(board,board_pieces(board))
+        self.dimensions = board_dim(board)
 
     # Returns all the possible actions from the given state
     def actions(self, state):
@@ -216,6 +217,12 @@ class solitaire(Problem):
 
     def h(self,node):
         return node.state.pieces
+
+    def h2(self, node):
+        
+        move = node.action
+
+        return 0
     
 def search_results(board,S):
 
@@ -231,21 +238,24 @@ def search_results(board,S):
         #DFS SEARCH
         result_dfs = depth_first_tree_search(Problem)
         dfs_time = time.time() - i_time
-        print("DFS:\n", dfs_time, '\n', result_dfs.solution(),'\n', result_dfs.path(),'\n')
-        return
+        if result_dfs:
+            print("DFS:\n", dfs_time, '\n', result_dfs.solution(),'\n', result_dfs.path(),'\n')
+        #return
     
     if S=='Greedy':
         #GREEDY SEARCH
         result_gan = greedy_best_first_graph_search(Problem,Problem.h)
         gan_time = time.time() - i_time        
-        print("GREEDY:\n", gan_time, '\n', result_gan.solution(),'\n', result_gan.path(),'\n')
-        return
+        if result_gan:
+            print("GREEDY:\n", gan_time, '\n', result_gan.solution(),'\n', result_gan.path(),'\n')
+        #return
 
     if S=='A*':
         result_astar = astar_search(Problem)
         astar_time = time.time() - i_time
-        print("A*:\n", astar_time, '\n', result_astar.solution(),'\n', result_astar.path(),'\n')
-        return
+        if result_astar:
+            print("A*:\n", astar_time, '\n', result_astar.solution(),'\n', result_astar.path(),'\n')
+        #return
 
 def boards(n):    
     O = c_peg()
@@ -304,3 +314,7 @@ def center_of_mass(board):
                 y += i
                 n += 1
     return (x/n, y/n)
+
+solve(0, "DFS")
+solve(0, "Greedy")
+solve(0, "A*")
