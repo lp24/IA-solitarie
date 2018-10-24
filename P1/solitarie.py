@@ -231,10 +231,6 @@ class sol_state:
 
     def __init__(self, board):
         self.board = board
-        #self.pieces = None              # Number of pieces at the current state
-
-    def __lt__(self):
-        return True
 
     def __repr__(self):
 
