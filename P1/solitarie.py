@@ -1,15 +1,15 @@
 """
-_______________________________________________________________________________
+______________________________________________________________________________
 IA project 1
-Luis Oliveira
+Luis Oliveira 83500
 Samuel Arleo 94284
 _______________________________________________________________________________
-
 """
 
-from search import Problem, Node, depth_first_tree_search, best_first_graph_search
+from search import *
 import time
 
+#content
 def c_peg():
     return "O"
 
@@ -55,14 +55,15 @@ def move_final(move):
 # Return the coordinates of the position in the middle of the move
 def move_middle(move):
     
-    # Lines of the initial and final positions involved in the move
+    # intial posion
     l_initial = pos_l(move_initial(move))
-    l_final =   pos_l(move_final(move))
-
-    # Columns of the initial and final positions involved in the move
     c_initial = pos_c(move_initial(move))
+    
+    # final position
+    l_final =   pos_l(move_final(move))    
     c_final =   pos_c(move_final(move))
     
+    #middle position    
     l = ( l_initial + l_final ) // 2
     c = ( c_initial + c_final ) // 2    
     return make_pos(l,c)
@@ -90,11 +91,8 @@ def change_pos_content(board,position,content):
     board[pos_l(position)][pos_c(position)]=content
 
 # Checks if "move" is a correct play in given board
-# *!* check if move positions have the same row or column?
 def can_move(board,move):
-    
-    # Getting the content of the board in the initial, middle and final
-    # positions of the movement
+
     initial_content = pos_content(board,move_initial(move))
     middle_content  = pos_content(board,move_middle(move))
     final_content   = pos_content(board,move_final(move))
@@ -102,32 +100,33 @@ def can_move(board,move):
     return is_peg(initial_content) and is_peg(middle_content) and is_empty(final_content)
 
 #returns all the moves that can be made INTO the position.
-#to get all the moves that can be made FROM the position, switch pos and i_pos in lines 'm=make_move()'
 def position_moves(pos,board):
     moves=[]
+    if not is_empty(pos_content(board,pos)):
+        return moves
 
-    #not in left border
+    #not in left border, checks move from two columns left
     if pos_c(pos)>=2:
         i_pos=make_pos(pos_l(pos),pos_c(pos)-2)
         m=make_move(i_pos,pos)
         if can_move(board,m):
             moves=moves+[m]
             
-    #not in upper border
+    #not in upper border, checks move from two lines up
     if pos_l(pos)>=2:
         i_pos=make_pos(pos_l(pos)-2,pos_c(pos))
         m=make_move(i_pos,pos)
         if can_move(board,m):
             moves=moves+[m]
             
-    #not in right border
+    #not in right border, checks move from two columns right
     if pos_c(pos)<=board_cols(board)-3:
         i_pos=make_pos(pos_l(pos),pos_c(pos)+2)
         m=make_move(i_pos,pos)
         if can_move(board,m):
             moves=moves+[m]
             
-    #not in lower border        
+    #not in lower border, checks move from two lines down      
     if pos_l(pos)<=board_lines(board)-3:
         i_pos=make_pos(pos_l(pos)+2,pos_c(pos))
         m=make_move(i_pos,pos)
@@ -139,11 +138,9 @@ def position_moves(pos,board):
 #returns a list with all the available moves in a board                                                                               
 def board_moves(board):
     moves=[]
-
     for i in range(board_lines(board)):
         for j in range(board_cols(board)):
             pos = make_pos(i,j)
-            content = pos_content(board, pos)
             moves = moves + position_moves(pos,board)
     return moves
 
@@ -159,13 +156,13 @@ def board_cpy(board):
 
 #makes a move, initial board remains the same (makes a copy)        
 def board_perform_move(board,move):
-    if not can_move(board,move):
-        return False
-    board_cp=board_cpy(board)
-    change_pos_content(board_cp,move_initial(move),c_empty())
-    change_pos_content(board_cp,move_middle(move),c_empty())
-    change_pos_content(board_cp,move_final(move),c_peg())
-    return board_cp
+    if can_move(board,move):
+        board_cp=board_cpy(board)
+        change_pos_content(board_cp,move_initial(move),c_empty())
+        change_pos_content(board_cp,move_middle(move),c_empty())
+        change_pos_content(board_cp,move_final(move),c_peg())
+        return board_cp
+    return False
 
 #returns the number of pieces in a board. This should only be called in the initial 
 #board, then remove 1 piece for each move made
@@ -177,78 +174,31 @@ def board_pieces(board):
                 pieces_number = pieces_number + 1
     return pieces_number                                                                   
 
-# Checks if the game is finished (1 piece left)
-def game_finished(board):
-    return board_pieces(board) == 1
+class sol_state:
 
-# Coordinates where the most amount of pieces is located (could be float). This 
-# could be used as an heuristic to try to head the moves towards the sections with 
-# more pieces. Give more priority to those who are far from the center of mass
-# This might be too complex
-def center_of_mass(board):
+    """
+    A state in the search tree. It stores the current board produced 
+    after all the actions performed before in the parent nodes
+    """
+    def __init__(self, board, pieces):
+        self.board = board
+        self.pieces= pieces
 
-    c = 0           # Column coordinates of the CoM
-    l = 0           # Row coordinates of the CoM
-    n = 0           # Number of pieces
-    
-    for i in range(board_lines(board)):
-        for j in range(board_cols(board)):
-            if is_peg(pos_content(board,make_pos(i,j))):
-                c += j
-                l += i
-                n += 1
-    return make_pos(l/n, c/n)
+    def __lt__(self, other):
+        return True
 
+    def __repr__(self):
+        b = "\n"
+        for line in range(board_lines(self.board)):
+            b = b + str(get_board_line(self.board,line)) + "\n"
+        return b
 
-# Calcules the distance of the new position of the move and the 
-# Center of mass of a board (pos)
-def com_distance(final_pos, com_pos):
-
-    # Line and column of the final position of the move
-    l_final =   pos_l(final_pos)
-    c_final =   pos_c(final_pos)
-
-    # Line and column coordinates of the center of mass
-    l_com =   pos_l(com_pos)
-    c_com =   pos_c(com_pos)
-    
-    d_power = (l_final - l_com)**2 + (c_final - c_com)**2
-
-    return d_power
-
-# h0 prefers nodes resulting from moves on the direction of the Center of mass 
-# of the parent Node (where most balls are . This tryies to avoid making moves 
-# that place pieces away of the rest, which makes the searching algorithm to reach 
-# unsuccessful states
-def h0(node):
-
-    if node.parent is None:
-        return 0
-    parent_board = node.parent.state.board
-    # Coordinates of the center of mass of the parent board
-    parent_com = center_of_mass(parent_board) 
-    # Node action that produced its state
-    move = node.action
-
-    # Final position of the move
-    l_final =   pos_l(move_final(move))
-    c_final =   pos_c(move_final(move))
-
-    final = make_pos(l_final, c_final)
-
-    distance = com_distance(final, parent_com)
-
-    return distance
-
-class solitarie(Problem):
-    
+class solitaire(Problem):    
     """
     Game problem class
     """
-
     def __init__(self, board):
-        Problem.__init__(self, board)
-        self.
+        self.initial=sol_state(board,board_pieces(board))
 
     # Returns all the possible actions from the given state
     def actions(self, state):
@@ -256,93 +206,55 @@ class solitarie(Problem):
 
     # Returns the new state with the action performed to the board
     def result(self, state, action):
-        new_board = board_perform_move(state.board, action)
-        return sol_state(new_board)
+        board = board_perform_move(state.board, action)
+        pieces = state.pieces-1
+        return sol_state(board,pieces)
 
     # Stop condition for the search alg. when there is one piece left on the board
     def goal_test(self, state):
-        #return state.pieces == 1 
-        return game_finished(state.board)
+        return state.pieces==1
 
-class sol_state:
-
-    """
-    A state in the search tree. It stores the current board produced 
-    after all the actions performed before in the parent nodes
-    """
-
-    def __init__(self, board):
-        self.board = board
-
-    def __lt__(self, node):
-        return True         # Always the first node is smaller
-
-    def __repr__(self):
-
-        b = "\n"
-        lines = board_lines(self.board)
-        for f in range(0, lines):
-            if f != lines - 1:
-                b = b + str(get_board_line(self.board,f)) + "\n"
-            else:
-                b = b + str(get_board_line(self.board,f))
-        return b
-
-def solving_times(board, f=None):
-
+    def h(self,node):
+        return node.state.pieces
+    
+def search_results(board,S):
 
     # Defining the initial state with the original board
-    initial = sol_state(board)
+    game = solitaire(board)
+    print(game.initial)
+    
+    Problem=InstrumentedProblem(game)
+    
+    i_time=time.time()
+    
+    if S=='DFS':
+        #DFS SEARCH
+        result_dfs = depth_first_tree_search(Problem)
+        dfs_time = time.time() - i_time
+        print("DFS:\n", dfs_time, '\n', result_dfs.solution(),'\n', result_dfs.path(),'\n')
+        return
+    
+    if S=='Greedy':
+        #GREEDY SEARCH
+        result_gan = greedy_best_first_graph_search(Problem,Problem.h)
+        gan_time = time.time() - i_time        
+        print("GREEDY:\n", gan_time, '\n', result_gan.solution(),'\n', result_gan.path(),'\n')
+        return
 
-    print(center_of_mass(board))
+    if S=='A*':
+        result_astar = astar_search(Problem)
+        astar_time = time.time() - i_time
+        print("A*:\n", astar_time, '\n', result_astar.solution(),'\n', result_astar.path(),'\n')
+        return
 
-    # Creating a solitarie Problem instance
-    problem = solitarie(initial)
-
-    # Delete when all searches are defined
-    result_dfs = None
-    astar_time = None
-    gan_time = None
-
-    dfs_prev_time = time.time()
-    #result_dfs = depth_first_tree_search(problem)
-    dfs_time = time.time() - dfs_prev_time
-
-    #print(result_dfs)
-
-    if f is None:
-        # First the nodes with the less depth (breath first search)
-        f = lambda node: node.depth             
-
-    result_gan = best_first_graph_search(problem, f)
-    gan_time = time.time() - dfs_time
-
-    #print(result_gan)
-    """
-    result_astar = astar_search(problem, h)
-    astar_time = time.time() - gan_time
-    """
-
-    return {"dfs_time":dfs_time, "astar_time":astar_time, "gan_time":gan_time}
-
-
-
-if __name__ == "__main__":
-
+def boards(n):    
     O = c_peg()
     X = c_blocked()
     _ = c_empty()
 
-
-    bx =   [[O,_,_,O,O],
-            [O,_,_,O,O],
-            [_,_,_,_,_],
-            [O,O,O,_,_],
-            [O,_,_,_,_]]
-
     b0 =   [[_,_,O],
-            [_,_,O],
-            [_,O,O]]
+            [O,O,O],
+            [O,O,O]]
 
     b1 =   [[_,O,O,O,_],
             [O,_,O,_,O],
@@ -364,26 +276,31 @@ if __name__ == "__main__":
             [O,_,O,O,O,O],
             [O,O,O,O,O,O],
             [O,O,O,O,O,O]]
-
-    board = bx
-
-    board_dimensions = board_dim(board)
-
-    board_center = center_of_mass(board) 
-    """
-    final_pos1 = make_pos(0,0)
-    final_pos2 = make_pos(1,2)
-
-    d1 = com_distance(final_pos1, board_center)
-    d2 = com_distance(final_pos2, board_center)
-
-    print(center_of_mass(board))
-    print(d1)
-    print(d2)
-    """
-    f = h0
-    print(solving_times(board, f))
-
-    #times = solving_times(b0)
     
-    #print(times)
+    switch={0:b0,1:b1,2:b2,3:b3,4:b4}   
+    return switch[n]
+ 
+def solve(b,S):
+    board=boards(b)
+    search_results(board,S)
+    print ('DONE')
+    
+    
+
+# Coordinates where the most amount of pieces is located (could be float). This 
+# could be used as an heuristic to try to head the moves towards the sections with 
+# more pieces. Give more priority to those who are far from the center of mass
+# This might be too complex
+def center_of_mass(board):
+
+    x = 0           # Column coordinates of the CoM
+    y = 0           # Row coordinates of the CoM
+    n = 0           # Number of pieces
+    
+    for i in range(board_lines(board)):
+        for j in range(board_cols(board)):
+            if is_peg(pos_content(board,make_pos(i,j))):
+                x += j
+                y += i
+                n += 1
+    return (x/n, y/n)
