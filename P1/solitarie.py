@@ -317,6 +317,6 @@ if __name__ == "__main__":
             [O,O,O,O,O,O],
             [O,O,O,O,O,O]]
 
-    b2_times = solving_times(b1)
+    times = solving_times(b1)
     
-    print(b2_times)
+    print(times)
