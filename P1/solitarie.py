@@ -357,3 +357,8 @@ def isolated(board):
             if is_alone(board,make_pos(i,j)):
                 pieces+=1
     return pieces
+
+
+solve(2, "DFS")
+solve(2, "Greedy")
+solve(2, "A*")
