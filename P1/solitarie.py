@@ -218,12 +218,80 @@ class solitaire(Problem):
     def h(self,node):
         return node.state.pieces
 
-    def h2(self, node):
+    # Priority to moves that take pieces out of the corners
+    def h0(self, node):
         
+        if node.parent is None:
+            return 0
+
         move = node.action
 
+        # Initial position of the move
+        l_initial = pos_l(move_initial(move))
+        c_initial = pos_c(move_initial(move))
+
+        # Dimensions of the board
+        rows = self.dimensions[0] - 1
+        cols = self.dimensions[1] - 1
+
+        # Bounds of the board
+        bounds = [(0,0), (0,cols), (rows,0), (rows,cols)]
+
+        if (l_initial,c_initial) in bounds:
+            return 0
+        return 1
+
+    # Priority to moves that don't place pieces to the borders of the board
+    def h1(self, node):
+
+        if node.parent is None:
+            return 0
+
+        move = node.action
+
+        # Initial position of the move
+        l_final = pos_l(move_final(move))
+        c_final = pos_c(move_final(move))
+
+        # Vertical and horizontal limits of the board
+        l_borders = [0, self.dimensions[0]-1]
+        c_borders = [0, self.dimensions[1]-1]
+        #print("l_final,c_final",l_final,c_final)
+        #print("l_borders, c_borders",l_borders, c_borders)
+        if l_final in l_borders or c_final in c_borders:
+            #print(1)
+            return 1
+        #print(0)
         return 0
-    
+
+
+    # Priority to moves that don't place pieces to the borders of the board
+    # (higher h(n) for corners)
+    def h2(self, node):
+
+        if node.parent is None:
+            return 0
+
+        move = node.action
+
+        # Initial position of the move
+        l_final = pos_l(move_final(move))
+        c_final = pos_c(move_final(move))
+
+        # Vertical and horizontal limits of the board
+        l_borders = [0, self.dimensions[0]-1]
+        c_borders = [0, self.dimensions[1]-1]
+        #print("l_final,c_final",l_final,c_final)
+        #print("l_borders, c_borders",l_borders, c_borders)
+        if l_final in l_borders and c_final in c_borders:
+            return 2
+
+        elif l_final in l_borders or c_final in c_borders:
+            #print(1)
+            return 1
+        #print(0)
+        return 0
+
 def search_results(board,S):
 
     # Defining the initial state with the original board
@@ -231,6 +299,9 @@ def search_results(board,S):
     print(game.initial)
     
     Problem=InstrumentedProblem(game)
+
+    # Heuristic function to be used in Greedy and A*
+    h = Problem.h2
     
     i_time=time.time()
     
@@ -238,23 +309,26 @@ def search_results(board,S):
         #DFS SEARCH
         result_dfs = depth_first_tree_search(Problem)
         dfs_time = time.time() - i_time
-        if result_dfs:
-            print("DFS:\n", dfs_time, '\n', result_dfs.solution(),'\n', result_dfs.path(),'\n')
+        print("DFS:\n", "Time", dfs_time)
+        #if result_dfs is not None:
+            #print(result_dfs.solution(),'\n', result_dfs.path(),'\n')
         #return
     
     if S=='Greedy':
         #GREEDY SEARCH
-        result_gan = greedy_best_first_graph_search(Problem,Problem.h)
+        result_gan = greedy_best_first_graph_search(Problem,h)
         gan_time = time.time() - i_time        
-        if result_gan:
-            print("GREEDY:\n", gan_time, '\n', result_gan.solution(),'\n', result_gan.path(),'\n')
+        print("GREEDY:\n", "Time", gan_time)
+        #if result_gan is not None:
+            #print(result_gan.solution(),'\n', result_gan.path(),'\n')
         #return
 
     if S=='A*':
-        result_astar = astar_search(Problem)
+        result_astar = astar_search(Problem, h)
         astar_time = time.time() - i_time
-        if result_astar:
-            print("A*:\n", astar_time, '\n', result_astar.solution(),'\n', result_astar.path(),'\n')
+        print("A*:\n", "Time", astar_time)
+        #if result_astar is not None:
+            #print(result_astar.solution(),'\n', result_astar.path(),'\n')
         #return
 
 def boards(n):    
@@ -263,6 +337,7 @@ def boards(n):
     _ = c_empty()
 
     b0 =   [[_,_,O],
+            [O,_,O],
             [O,O,O],
             [O,O,O]]
 
@@ -315,6 +390,16 @@ def center_of_mass(board):
                 n += 1
     return (x/n, y/n)
 
-solve(0, "DFS")
-solve(0, "Greedy")
-solve(0, "A*")
+solve(2, "DFS")
+solve(2, "Greedy")
+solve(2, "A*")
+
+
+"""
+- More weight to the moves that don-t put pieces on the corners and borders (
+this might be the center empty, making hard to find a solution)
+* Compute the actual borders of the board (including X spaces that modify the
+actual board borders)
+- Priority to moves in just one direction (to gather more pieces on that side)
+- Priority to moves that start in a border and don't end in a border
+"""
