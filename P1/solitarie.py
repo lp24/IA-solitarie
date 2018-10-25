@@ -174,6 +174,7 @@ def board_pieces(board):
                 pieces_number = pieces_number + 1
     return pieces_number                                                                   
 
+
 class sol_state:
 
     """
@@ -183,9 +184,13 @@ class sol_state:
     def __init__(self, board, pieces):
         self.board = board
         self.pieces= pieces
-
+        self.corners=corner_pieces(board)
+        self.moves=board_moves(board)
+        self.isolated=isolated(board)
+        self.distance=distance(board)
+        
     def __lt__(self, other):
-        return True
+        return self.pieces<=other.pieces
 
     def __repr__(self):
         b = "\n"
@@ -202,7 +207,7 @@ class solitaire(Problem):
 
     # Returns all the possible actions from the given state
     def actions(self, state):
-        return board_moves(state.board)
+        return state.moves
 
     # Returns the new state with the action performed to the board
     def result(self, state, action):
@@ -215,12 +220,12 @@ class solitaire(Problem):
         return state.pieces==1
 
     def h(self,node):
-        return node.state.pieces
-    
-def search_results(board,S):
+        return node.state.pieces*node.state.distance*node.state.isolated*node.state.corners/(len(node.state.moves)+1)
 
-    # Defining the initial state with the original board
-    game = solitaire(board)
+#Prints time, moves, and states from 'S' search in board 'board'
+def solve(n,S):
+    
+    game = solitaire(boards(n))
     print(game.initial)
     
     Problem=InstrumentedProblem(game)
@@ -242,6 +247,7 @@ def search_results(board,S):
         return
 
     if S=='A*':
+        #ASTAR SEARCH
         result_astar = astar_search(Problem)
         astar_time = time.time() - i_time
         print("A*:\n", astar_time, '\n', result_astar.solution(),'\n', result_astar.path(),'\n')
@@ -279,12 +285,6 @@ def boards(n):
     
     switch={0:b0,1:b1,2:b2,3:b3,4:b4}   
     return switch[n]
- 
-def solve(b,S):
-    board=boards(b)
-    search_results(board,S)
-    print ('DONE')
-    
     
 
 # Coordinates where the most amount of pieces is located (could be float). This 
@@ -303,5 +303,58 @@ def center_of_mass(board):
                 x += j
                 y += i
                 n += 1
-    return (x/n, y/n)
+    return (int(round(x/n)), int(round(y/n)))
 
+def distance(board):
+    distance=0
+    center=center_of_mass(board)
+    for i in range(board_lines(board)):
+        for j in range(board_cols(board)):
+            if is_peg(pos_content(board,make_pos(i,j))):
+                distance=distance+i-center[0]+j-center[1]
+    return distance
+            
+
+#number of pieces at the edge of the board, not counting 'X'. corners count twice. 
+def corner_pieces(board):
+    pieces=0
+    lines=board_lines(board)
+    cols=board_cols(board)
+    for i in range(cols):
+        if is_peg(pos_content(board,make_pos(0,i))):
+            pieces+=1
+        if is_peg(pos_content(board,make_pos(lines-1,i))):
+            pieces+=1
+    for i in range(lines):
+        if is_peg(pos_content(board,make_pos(i,0))):
+            pieces+=1
+        if is_peg(pos_content(board,make_pos(i,cols-1))):
+            pieces+=1        
+    return pieces
+
+
+def is_alone(board,pos):
+    if not is_peg(pos_content(board,pos)):
+        return False            
+    if pos_l(pos)>0:
+        if is_peg(pos_content(board,make_pos(pos_l(pos)-1,pos_c(pos)))):
+            return False
+    if pos_c(pos)>0:
+        if is_peg(pos_content(board,make_pos(pos_l(pos),pos_c(pos)-1))):
+            return False
+    if pos_l(pos)<board_lines(board)-1:
+        if is_peg(pos_content(board,make_pos(pos_l(pos)+1,pos_c(pos)))):
+            return False   
+    if pos_c(pos)<board_cols(board)-1:
+        if is_peg(pos_content(board,make_pos(pos_l(pos),pos_c(pos)+1))):
+            return False
+    return True
+
+def isolated(board):
+    pieces=0
+    for i in range(board_lines(board)):
+        for j in range(board_cols(board)):
+            if is_alone(board,make_pos(i,j)):
+                pieces+=1
+    return pieces
+            
