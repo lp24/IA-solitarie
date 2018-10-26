@@ -17,7 +17,7 @@ Global variables
 
 """
 
-gerados = 0
+gerados = 1         # 1 because the root is not considered
 expandidos = 0
 
 """
@@ -234,6 +234,13 @@ class sol_state:
     def __lt__(self, other):
         return self.pieces>=other.pieces
 
+
+    def __repr__(self):
+        b = "\n"
+        for line in range(board_lines(self.board)):
+            b = b + str(get_board_line(self.board,line)) + "\n"
+        return b
+
 """
    
 Game problem class
@@ -379,9 +386,9 @@ def boards(n):
     X = c_blocked()
     _ = c_empty()
 
-    b0 =   [[_,O,_],
-            [O,_,_],
-            [O,_,_]]
+    b0 =   [[_,_,_],
+            [O,O,_],
+            [O,O,_]]
 
     b1 =   [[_,O,O,O,_],
             [O,_,O,_,O],
@@ -410,7 +417,12 @@ def boards(n):
 
 #Prints time, moves, and states from 'S' search in board 'board'
 def solve(n,S):
+    global gerados, expandidos
     
+    # Restarting global vars modified in the previous solve execution
+    gerados = 1
+    expandidos = 0
+
     game = solitaire(boards(n))
     print(game.initial)
     
@@ -424,6 +436,7 @@ def solve(n,S):
         dfs_time = time.time() - i_time
         if result_dfs:
             print("DFS:\n", dfs_time, '\n', result_dfs.solution(),'\n', result_dfs.path(),'\n')
+        print("gerados {}, expandidos {}".format(gerados, expandidos))
         return
     
     if S=='Greedy':
@@ -432,6 +445,7 @@ def solve(n,S):
         gan_time = time.time() - i_time        
         if result_gan:
             print("GREEDY:\n", gan_time, '\n', result_gan.solution(),'\n', result_gan.path(),'\n')
+        print("gerados {}, expandidos {}".format(gerados, expandidos))
         return
 
     if S=='A*':
@@ -440,22 +454,12 @@ def solve(n,S):
         astar_time = time.time() - i_time
         if result_astar:
             print("A*:\n", astar_time, '\n', result_astar.solution(),'\n', result_astar.path(),'\n')
+        print("gerados {}, expandidos {}".format(gerados, expandidos))
         return
 
-solve(1,"DFS")
 
-print("gerados {}, expandidos {}".format(gerados, expandidos))
-
-gerados = 0
-expandidos = 0
+solve(0,"DFS")
     
-solve(1,"Greedy")
+solve(0,"Greedy")
 
-print("gerados {}, expandidos {}".format(gerados, expandidos))
-
-gerados = 0
-expandidos = 0
-
-solve(1,"A*")
-
-print("gerados {}, expandidos {}".format(gerados, expandidos))
+solve(0,"A*")
