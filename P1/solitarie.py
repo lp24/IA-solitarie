@@ -183,7 +183,7 @@ class sol_state:
     """
     def __init__(self, board, pieces):
         self.board = board
-        self.pieces= pieces
+        self.pieces = pieces
         self.corners=corner_pieces(board)
         self.moves=board_moves(board)
         self.isolated=isolated(board)
@@ -204,9 +204,11 @@ class solitaire(Problem):
     """
     def __init__(self, board):
         self.initial=sol_state(board,board_pieces(board))
+        self.generated = 0
 
     # Returns all the possible actions from the given state
     def actions(self, state):
+        self.generated += len(state.moves)
         return state.moves
 
     # Returns the new state with the action performed to the board
@@ -219,8 +221,67 @@ class solitaire(Problem):
     def goal_test(self, state):
         return state.pieces==1
 
-    def h(self,node):
+    def hy(self,node):
+        
+        # Approximate maximum distance
+        max_d = max_distance(node.state.board)
+        distance = node.state.distance/max_d
+        return 100*distance
+    
+    def hx(self,node):
+        return node.state.distance
+
+    def h1(self,node):
+        
+        # Current board and its dimentions
+        b = node.state.board
+        lines = board_lines(b)
+        cols = board_cols(b)
+
+        # Scaling heuristics and then selecting weights according to their performance
+        max_d = max_distance(node.state.board)
+        distance = node.state.distance / max_d 
+
+        max_isolated = lines * cols
+        isolated = node.state.isolated / max_isolated 
+
+        max_corners = 2*lines + 2*cols - 2
+        corners = node.state.corners / max_corners
+
+        return distance + isolated + corners
+
+    def h2(self,node):
+        return node.state.isolated
+
+    def h3(self,node):
+        return node.state.corners
+
+    def h4(self,node):
         return node.state.pieces*node.state.distance*node.state.isolated*node.state.corners/(len(node.state.moves)+1)
+
+    def h(self,node):
+        #print ("2*node.state.distance {}, 2*node.state.isolated {}, len(node.state.moves) {}".format(2*node.state.distance, 2*node.state.isolated, len(node.state.moves)))
+        return node.state.distance + node.state.isolated - len(node.state.moves)
+
+    def hk(self,node):
+        # Scaling heuristics and then selecting weights according to their performance
+        # Current board and its dimentions
+        b = node.state.board
+        lines = board_lines(b)
+        cols = board_cols(b)
+
+        max_d = max_distance(node.state.board)
+        distance = node.state.distance / max_d 
+
+        max_isolated = lines * cols
+        isolated = node.state.isolated / max_isolated 
+
+        num_moves = len(node.state.moves)/(lines*cols)
+
+        node.state.distance + node.state.isolated - len(node.state.moves)
+        #print ("distance {}, isolated {}, moves {}".format(distance, isolated, num_moves))
+        return 100*distance + 60*isolated - 50*num_moves
+
 
 #Prints time, moves, and states from 'S' search in board 'board'
 def solve(n,S):
@@ -236,21 +297,30 @@ def solve(n,S):
         #DFS SEARCH
         result_dfs = depth_first_tree_search(Problem)
         dfs_time = time.time() - i_time
-        print("DFS:\n", dfs_time, '\n', result_dfs.solution(),'\n', result_dfs.path(),'\n')
+        if result_dfs is not None:
+            print("DFS:\n", dfs_time, '\n', result_dfs.solution(),'\n', result_dfs.path(),'\n')
+        print("Generated", game.generated)
+        game.generated = 0
         return
     
     if S=='Greedy':
         #GREEDY SEARCH
-        result_gan = greedy_best_first_graph_search(Problem,Problem.h)
+        result_gan = greedy_best_first_graph_search(Problem, Problem.h)
         gan_time = time.time() - i_time        
-        print("GREEDY:\n", gan_time, '\n', result_gan.solution(),'\n', result_gan.path(),'\n')
+        if result_gan is not None:
+            print("GREEDY:\n", gan_time, '\n', result_gan.solution(),'\n', result_gan.path(),'\n')
+        print("Generated", game.generated)
+        game.generated = 0
         return
 
     if S=='A*':
         #ASTAR SEARCH
         result_astar = astar_search(Problem)
         astar_time = time.time() - i_time
-        print("A*:\n", astar_time, '\n', result_astar.solution(),'\n', result_astar.path(),'\n')
+        if result_astar is not None:
+            print("A*:\n", astar_time, '\n', result_astar.solution(),'\n', result_astar.path(),'\n')
+        print("Generated", game.generated)
+        game.generated = 0
         return
 
 def boards(n):    
@@ -258,9 +328,9 @@ def boards(n):
     X = c_blocked()
     _ = c_empty()
 
-    b0 =   [[_,_,O],
-            [O,O,O],
-            [O,O,O]]
+    b0 =   [[_,_,_],
+            [_,O,_],
+            [O,O,_]]
 
     b1 =   [[_,O,O,O,_],
             [O,_,O,_,O],
@@ -311,7 +381,7 @@ def distance(board):
     for i in range(board_lines(board)):
         for j in range(board_cols(board)):
             if is_peg(pos_content(board,make_pos(i,j))):
-                distance=distance+i-center[0]+j-center[1]
+                distance=distance + abs(i-center[0]) + abs(j-center[1])
     return distance
             
 
@@ -358,7 +428,17 @@ def isolated(board):
                 pieces+=1
     return pieces
 
+# Getting approximate maximum aggregated distance that the pieces of a board
+# can have with the COM of the board
+def max_distance(board):
+    lines = board_lines(board)
+    cols = board_cols(board)
 
-solve(2, "DFS")
-solve(2, "Greedy")
-solve(2, "A*")
+    # Max number of pieces
+    n = lines*cols
+
+    return n*(lines - 1)/2 + n*(cols - 1)/2
+
+solve(0, "DFS")
+solve(0, "Greedy")
+solve(0, "A*")
