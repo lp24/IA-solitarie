@@ -1,6 +1,8 @@
 """
-______________________________________________________________________________
-IA project 1
+____________________________________________________________________________
+IA project 1 - Peg Solitaire
+
+Group 43:
 Luis Oliveira 83500
 Samuel Arleo 94284
 _______________________________________________________________________________
@@ -9,7 +11,22 @@ _______________________________________________________________________________
 from search import *
 import time
 
-#content
+"""
+
+Global variables
+
+"""
+
+gerados = 0
+expandidos = 0
+
+"""
+
+Content TAI
+Peg='O', Empty='_', Blocked='X'
+
+"""
+
 def c_peg():
     return "O"
 
@@ -28,9 +45,12 @@ def is_peg(e):
 def is_blocked(e):
     return e==c_blocked()
 
-#position
-#Tuple(line,column)
+"""
 
+Position TAI
+Tuple(line,column)
+
+"""
 def make_pos(l,c):
     return (l,c)
 
@@ -40,8 +60,12 @@ def pos_l(pos):
 def pos_c(pos):
     return pos[1]
 
-#move
-#List[pos_i,pos_f]
+"""
+
+Move TAI
+List[pos_i,pos_f]
+
+"""
 
 def make_move(i,f):
     return [i,f]
@@ -52,6 +76,11 @@ def move_initial(move):
 def move_final(move):
     return move[1]
 
+"""
+
+Auxiliary Move Function
+
+"""
 # Return the coordinates of the position in the middle of the move
 def move_middle(move):
     
@@ -68,18 +97,17 @@ def move_middle(move):
     c = ( c_initial + c_final ) // 2    
     return make_pos(l,c)
     
+"""
 
-#board
-#List of Lists of content
+Board TAI
+List of Lists of content
+
+"""
+
+#Constructor not necessary
 
 def board_dim(board):
     return (len(board),len(board[0]))
-
-def board_lines(board):
-    return board_dim(board)[0]
-
-def board_cols(board):
-    return board_dim(board)[1]
 
 def get_board_line(board, line):
     return board[line]
@@ -89,8 +117,30 @@ def pos_content(board,position):
 
 def change_pos_content(board,position,content):
     board[pos_l(position)][pos_c(position)]=content
+    
+#returns a copy of a board
+def board_cpy(board):
+    board_cpy=[]
+    for i in range(board_lines(board)):
+        line_cpy=[]
+        for j in range(board_cols(board)):
+            line_cpy=line_cpy+[pos_content(board,make_pos(i,j))]
+        board_cpy=board_cpy+[line_cpy]
+    return board_cpy    
+    
+"""
 
-# Checks if "move" is a correct play in given board
+Auxiliary Board Functions
+
+"""
+
+def board_lines(board):
+    return board_dim(board)[0]
+
+def board_cols(board):
+    return board_dim(board)[1]
+
+# Checks if "move" is a correct play in "board"
 def can_move(board,move):
 
     initial_content = pos_content(board,move_initial(move))
@@ -99,7 +149,7 @@ def can_move(board,move):
     
     return is_peg(initial_content) and is_peg(middle_content) and is_empty(final_content)
 
-#returns all the moves that can be made INTO the position.
+#Returns all the moves that can be made INTO a position.
 def position_moves(pos,board):
     moves=[]
     if not is_empty(pos_content(board,pos)):
@@ -133,28 +183,15 @@ def position_moves(pos,board):
         if can_move(board,m):
             moves=moves+[m]
             
-    return moves                                                                          
+    return moves 
 
-#returns a list with all the available moves in a board                                                                               
-def board_moves(board):
-    moves=[]
-    for i in range(board_lines(board)):
-        for j in range(board_cols(board)):
-            pos = make_pos(i,j)
-            moves = moves + position_moves(pos,board)
-    return moves
+"""
 
-#returns a copy of a board
-def board_cpy(board):
-    board_cpy=[]
-    for i in range(board_lines(board)):
-        line_cpy=[]
-        for j in range(board_cols(board)):
-            line_cpy=line_cpy+[pos_content(board,make_pos(i,j))]
-        board_cpy=board_cpy+[line_cpy]
-    return board_cpy
+Requested Functions
 
-#makes a move, initial board remains the same (makes a copy)        
+"""
+
+#makes a move, initial board remains the same (makes a copy)       
 def board_perform_move(board,move):
     if can_move(board,move):
         board_cp=board_cpy(board)
@@ -164,173 +201,187 @@ def board_perform_move(board,move):
         return board_cp
     return False
 
-#returns the number of pieces in a board. This should only be called in the initial 
-#board, then remove 1 piece for each move made
+#returns a list with all the available moves in a board                                                                               
+def board_moves(board):
+    moves=[]
+    for i in range(board_lines(board)):
+        for j in range(board_cols(board)):
+            pos = make_pos(i,j)
+            moves = moves + position_moves(pos,board)
+    return moves                                                             
+
+"""
+
+Problem Classes:
+
+sol_state: A state in the search tree/graph
+It stores the board and other helpful information
+(number of pieces, available moves, number of isolated pieces,
+and sum of all pieces to the center of mass (of the pieces)).
+
+"""
+
+class sol_state:
+
+    def __init__(self, board):
+        self.board = board
+        self.pieces= board_pieces(board)
+        self.moves=board_moves(board)
+        self.isolated=isolated(board)
+        self.distance=distance(board)
+    
+    #Defines tie-breaker for the Heuristics in the Priority Qeue 
+    def __lt__(self, other):
+        return self.pieces>=other.pieces
+
+"""
+   
+Game problem class
+
+"""
+class solitaire(Problem):    
+
+    def __init__(self, board):
+        self.initial=sol_state(board)
+
+    # Returns all the possible actions from the given state
+    def actions(self, state):
+        global expandidos
+        global gerados
+        expandidos += 1
+        gerados += len(state.moves)
+        return state.moves
+
+    # Returns the new state with the action performed to previous state
+    def result(self, state, action):
+        board = board_perform_move(state.board, action)
+        return sol_state(board)
+
+    # Goal is having only 1 piece left
+    def goal_test(self, state):
+        return state.pieces==1
+    
+    #Heuristic
+    def h(self,node):
+        return node.state.distance+node.state.isolated-len(node.state.moves)    
+
+
+"""
+Returns the number of pieces in a board. This should only be called in the initial board, then remove 1 piece for each move made. 
+
+This is both the goal test, and can be an Heuristic (not used)
+"""
 def board_pieces(board):
     pieces_number=0
     for i in range(board_lines(board)):
         for j in range(board_cols(board)):
             if is_peg(pos_content(board,make_pos(i,j))):
                 pieces_number = pieces_number + 1
-    return pieces_number                                                                   
-
-
-class sol_state:
-
-    """
-    A state in the search tree. It stores the current board produced 
-    after all the actions performed before in the parent nodes
-    """
-    def __init__(self, board, pieces):
-        self.board = board
-        self.pieces = pieces
-        self.corners=corner_pieces(board)
-        self.moves=board_moves(board)
-        self.isolated=isolated(board)
-        self.distance=distance(board)
-        
-    def __lt__(self, other):
-        return self.pieces<=other.pieces
-
-    def __repr__(self):
-        b = "\n"
-        for line in range(board_lines(self.board)):
-            b = b + str(get_board_line(self.board,line)) + "\n"
-        return b
-
-class solitaire(Problem):    
-    """
-    Game problem class
-    """
-    def __init__(self, board):
-        self.initial=sol_state(board,board_pieces(board))
-        self.generated = 0
-
-    # Returns all the possible actions from the given state
-    def actions(self, state):
-        self.generated += len(state.moves)
-        return state.moves
-
-    # Returns the new state with the action performed to the board
-    def result(self, state, action):
-        board = board_perform_move(state.board, action)
-        pieces = state.pieces-1
-        return sol_state(board,pieces)
-
-    # Stop condition for the search alg. when there is one piece left on the board
-    def goal_test(self, state):
-        return state.pieces==1
-
-    def hy(self,node):
-        
-        # Approximate maximum distance
-        max_d = max_distance(node.state.board)
-        distance = node.state.distance/max_d
-        return 100*distance
+    return pieces_number   
     
-    def hx(self,node):
-        return node.state.distance
+"""
 
-    def h1(self,node):
-        
-        # Current board and its dimentions
-        b = node.state.board
-        lines = board_lines(b)
-        cols = board_cols(b)
+Heuristics
 
-        # Scaling heuristics and then selecting weights according to their performance
-        max_d = max_distance(node.state.board)
-        distance = node.state.distance / max_d 
+"""
 
-        max_isolated = lines * cols
-        isolated = node.state.isolated / max_isolated 
+#Heuristic that favors moving pieces toward center of mass
+def distance(board):     
+    distance=0
+    center=center_of_mass(board)
+    for i in range(board_lines(board)):
+        for j in range(board_cols(board)):
+            if is_peg(pos_content(board,make_pos(i,j))):
+                distance=distance+abs(i-center[0])+abs(j-center[1])
+    return distance
 
-        max_corners = 2*lines + 2*cols - 2
-        corners = node.state.corners / max_corners
+#Auxiliary Function
+#Coordinates where the most amount of pieces is located. 
+def center_of_mass(board):
 
-        return distance + isolated + corners
-
-    def h2(self,node):
-        return node.state.isolated
-
-    def h3(self,node):
-        return node.state.corners
-
-    def h4(self,node):
-        return node.state.pieces*node.state.distance*node.state.isolated*node.state.corners/(len(node.state.moves)+1)
-
-    def h(self,node):
-        #print ("2*node.state.distance {}, 2*node.state.isolated {}, len(node.state.moves) {}".format(2*node.state.distance, 2*node.state.isolated, len(node.state.moves)))
-        return node.state.distance + node.state.isolated - len(node.state.moves)
-
-    def hk(self,node):
-        # Scaling heuristics and then selecting weights according to their performance
-        # Current board and its dimentions
-        b = node.state.board
-        lines = board_lines(b)
-        cols = board_cols(b)
-
-        max_d = max_distance(node.state.board)
-        distance = node.state.distance / max_d 
-
-        max_isolated = lines * cols
-        isolated = node.state.isolated / max_isolated 
-
-        num_moves = len(node.state.moves)/(lines*cols)
-
-        node.state.distance + node.state.isolated - len(node.state.moves)
-        #print ("distance {}, isolated {}, moves {}".format(distance, isolated, num_moves))
-        return 100*distance + 60*isolated - 50*num_moves
-
-
-#Prints time, moves, and states from 'S' search in board 'board'
-def solve(n,S):
+    x = 0           # Column coordinates of the CoM
+    y = 0           # Row coordinates of the CoM
+    n = 0           # Number of pieces
     
-    game = solitaire(boards(n))
-    print(game.initial)
-    
-    Problem=InstrumentedProblem(game)
-    
-    i_time=time.time()
-    
-    if S=='DFS':
-        #DFS SEARCH
-        result_dfs = depth_first_tree_search(Problem)
-        dfs_time = time.time() - i_time
-        if result_dfs is not None:
-            print("DFS:\n", dfs_time, '\n', result_dfs.solution(),'\n', result_dfs.path(),'\n')
-        print("Generated", game.generated)
-        game.generated = 0
-        return
-    
-    if S=='Greedy':
-        #GREEDY SEARCH
-        result_gan = greedy_best_first_graph_search(Problem, Problem.h)
-        gan_time = time.time() - i_time        
-        if result_gan is not None:
-            print("GREEDY:\n", gan_time, '\n', result_gan.solution(),'\n', result_gan.path(),'\n')
-        print("Generated", game.generated)
-        game.generated = 0
-        return
+    for i in range(board_lines(board)):
+        for j in range(board_cols(board)):
+            if is_peg(pos_content(board,make_pos(i,j))):
+                x += j
+                y += i
+                n += 1
+    return (int(round(x/n)), int(round(y/n))) 
 
-    if S=='A*':
-        #ASTAR SEARCH
-        result_astar = astar_search(Problem)
-        astar_time = time.time() - i_time
-        if result_astar is not None:
-            print("A*:\n", astar_time, '\n', result_astar.solution(),'\n', result_astar.path(),'\n')
-        print("Generated", game.generated)
-        game.generated = 0
-        return
+#Heuristic that favours leaving less isolated pieces
+def isolated(board):  
+    pieces=0
+    for i in range(board_lines(board)):
+        for j in range(board_cols(board)):
+            if is_alone(board,make_pos(i,j)):
+                pieces+=1
+    return pieces
+
+#Auxiliary Function
+#Alone if pos has a piece, but no piece in adjent positions
+def is_alone(board,pos):
+    if not is_peg(pos_content(board,pos)):
+        return False
+    
+    #not in upper border
+    if pos_l(pos)>0:
+        if is_peg(pos_content(board,make_pos(pos_l(pos)-1,pos_c(pos)))):
+            return False
+    
+    #not in left border
+    if pos_c(pos)>0:
+        if is_peg(pos_content(board,make_pos(pos_l(pos),pos_c(pos)-1))):
+            return False
+    
+    #not in lower border
+    if pos_l(pos)<board_lines(board)-1:
+        if is_peg(pos_content(board,make_pos(pos_l(pos)+1,pos_c(pos)))):
+            return False 
+    
+    #not in right border
+    if pos_c(pos)<board_cols(board)-1:
+        if is_peg(pos_content(board,make_pos(pos_l(pos),pos_c(pos)+1))):
+            return False
+    return True  
+
+#Heuristic that favours having less pieces at the edge of the board. 
+#NOT USED
+def corner_pieces(board):
+    pieces=0
+    lines=board_lines(board)
+    cols=board_cols(board)
+    for i in range(cols):
+        if is_peg(pos_content(board,make_pos(0,i))):
+            pieces+=1
+        if is_peg(pos_content(board,make_pos(lines-1,i))):
+            pieces+=1
+    for i in range(lines):
+        if is_peg(pos_content(board,make_pos(i,0))):
+            pieces+=1
+        if is_peg(pos_content(board,make_pos(i,cols-1))):
+            pieces+=1        
+    return pieces
+
+
+"""
+
+TO DELETE
+TESTING FUNCTIONS
+
+"""
+
 
 def boards(n):    
     O = c_peg()
     X = c_blocked()
     _ = c_empty()
 
-    b0 =   [[_,_,_],
-            [_,O,_],
-            [O,O,_]]
+    b0 =   [[_,O,_],
+            [O,_,_],
+            [O,_,_]]
 
     b1 =   [[_,O,O,O,_],
             [O,_,O,_,O],
@@ -355,90 +406,56 @@ def boards(n):
     
     switch={0:b0,1:b1,2:b2,3:b3,4:b4}   
     return switch[n]
+
+
+#Prints time, moves, and states from 'S' search in board 'board'
+def solve(n,S):
     
-
-# Coordinates where the most amount of pieces is located (could be float). This 
-# could be used as an heuristic to try to head the moves towards the sections with 
-# more pieces. Give more priority to those who are far from the center of mass
-# This might be too complex
-def center_of_mass(board):
-
-    x = 0           # Column coordinates of the CoM
-    y = 0           # Row coordinates of the CoM
-    n = 0           # Number of pieces
+    game = solitaire(boards(n))
+    print(game.initial)
     
-    for i in range(board_lines(board)):
-        for j in range(board_cols(board)):
-            if is_peg(pos_content(board,make_pos(i,j))):
-                x += j
-                y += i
-                n += 1
-    return (int(round(x/n)), int(round(y/n)))
+    Problem=InstrumentedProblem(game)
+    
+    i_time=time.time()
+    
+    if S=='DFS':
+        #DFS SEARCH
+        result_dfs = depth_first_tree_search(Problem)
+        dfs_time = time.time() - i_time
+        if result_dfs:
+            print("DFS:\n", dfs_time, '\n', result_dfs.solution(),'\n', result_dfs.path(),'\n')
+        return
+    
+    if S=='Greedy':
+        #GREEDY SEARCH
+        result_gan = greedy_best_first_graph_search(Problem,Problem.h)
+        gan_time = time.time() - i_time        
+        if result_gan:
+            print("GREEDY:\n", gan_time, '\n', result_gan.solution(),'\n', result_gan.path(),'\n')
+        return
 
-def distance(board):
-    distance=0
-    center=center_of_mass(board)
-    for i in range(board_lines(board)):
-        for j in range(board_cols(board)):
-            if is_peg(pos_content(board,make_pos(i,j))):
-                distance=distance + abs(i-center[0]) + abs(j-center[1])
-    return distance
-            
+    if S=='A*':
+        #ASTAR SEARCH
+        result_astar = astar_search(Problem)
+        astar_time = time.time() - i_time
+        if result_astar:
+            print("A*:\n", astar_time, '\n', result_astar.solution(),'\n', result_astar.path(),'\n')
+        return
 
-#number of pieces at the edge of the board, not counting 'X'. corners count twice. 
-def corner_pieces(board):
-    pieces=0
-    lines=board_lines(board)
-    cols=board_cols(board)
-    for i in range(cols):
-        if is_peg(pos_content(board,make_pos(0,i))):
-            pieces+=1
-        if is_peg(pos_content(board,make_pos(lines-1,i))):
-            pieces+=1
-    for i in range(lines):
-        if is_peg(pos_content(board,make_pos(i,0))):
-            pieces+=1
-        if is_peg(pos_content(board,make_pos(i,cols-1))):
-            pieces+=1        
-    return pieces
+solve(1,"DFS")
 
+print("gerados {}, expandidos {}".format(gerados, expandidos))
 
-def is_alone(board,pos):
-    if not is_peg(pos_content(board,pos)):
-        return False            
-    if pos_l(pos)>0:
-        if is_peg(pos_content(board,make_pos(pos_l(pos)-1,pos_c(pos)))):
-            return False
-    if pos_c(pos)>0:
-        if is_peg(pos_content(board,make_pos(pos_l(pos),pos_c(pos)-1))):
-            return False
-    if pos_l(pos)<board_lines(board)-1:
-        if is_peg(pos_content(board,make_pos(pos_l(pos)+1,pos_c(pos)))):
-            return False   
-    if pos_c(pos)<board_cols(board)-1:
-        if is_peg(pos_content(board,make_pos(pos_l(pos),pos_c(pos)+1))):
-            return False
-    return True
+gerados = 0
+expandidos = 0
+    
+solve(1,"Greedy")
 
-def isolated(board):
-    pieces=0
-    for i in range(board_lines(board)):
-        for j in range(board_cols(board)):
-            if is_alone(board,make_pos(i,j)):
-                pieces+=1
-    return pieces
+print("gerados {}, expandidos {}".format(gerados, expandidos))
 
-# Getting approximate maximum aggregated distance that the pieces of a board
-# can have with the COM of the board
-def max_distance(board):
-    lines = board_lines(board)
-    cols = board_cols(board)
+gerados = 0
+expandidos = 0
 
-    # Max number of pieces
-    n = lines*cols
+solve(1,"A*")
 
-    return n*(lines - 1)/2 + n*(cols - 1)/2
-
-solve(0, "DFS")
-solve(0, "Greedy")
-solve(0, "A*")
+print("gerados {}, expandidos {}".format(gerados, expandidos))
