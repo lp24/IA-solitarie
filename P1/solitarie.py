@@ -17,7 +17,10 @@ Global variables
 
 """
 
-gerados = 1         # 1 because the root is not considered
+# Number of nodes generated
+gerados = 1                     # 1 because the root is not considered
+
+# Number of nodes expanded
 expandidos = 0
 
 """
@@ -267,10 +270,10 @@ class solitaire(Problem):
     # Goal is having only 1 piece left
     def goal_test(self, state):
         return state.pieces==1
-    
+
     #Heuristic
     def h(self,node):
-        return node.state.distance+node.state.isolated-len(node.state.moves)    
+        return node.state.distance+node.state.isolated-len(node.state.moves)
 
 
 """
@@ -457,9 +460,7 @@ def solve(n,S):
         print("gerados {}, expandidos {}".format(gerados, expandidos))
         return
 
-
-solve(0,"DFS")
     
-solve(0,"Greedy")
+solve(4,"Greedy")
 
-solve(0,"A*")
+solve(4,"A*")

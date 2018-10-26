@@ -1,0 +1,6 @@
+C.M
+C.M. = (x_{cm},y_{cm}) = \left ( \sum\limits_{i=1}^N \frac{x_i}{N},\sum\limits_{i=1}^N \frac{y_i}{N}  \right )
+
+
+Distance
+h1(n) = \sum \limits_{i=1}^N (x_i-x_{cm}) + (y_i-y_{cm})
